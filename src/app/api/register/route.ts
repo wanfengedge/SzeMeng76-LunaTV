@@ -151,22 +151,17 @@ export async function POST(req: NextRequest) {
       // 清除缓存，确保下次获取配置时是最新的
       clearConfigCache();
 
-      // 等待云数据库同步完成（Upstash 等云服务需要时间同步数据）
-      // 避免立即跳转后其他 API（如 /api/playrecords）读取配置时找不到新注册的用户
-      // Kvrocks 本地部署无此问题
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 注册成功后自动登录，设置与登录API一致的cookie
-      const response = NextResponse.json({
-        ok: true,
-        message: '注册成功，已自动登录'
+      // 注册成功后自动登录
+      const response = NextResponse.json({ 
+        ok: true, 
+        message: '注册成功，已自动登录' 
       });
-
+      
       const cookieValue = await generateAuthCookie(
         username,
         password,
         'user',
-        false  // 数据库模式不在cookie中存储密码，只存储签名
+        false
       );
       const expires = new Date();
       expires.setDate(expires.getDate() + 7); // 7天过期
