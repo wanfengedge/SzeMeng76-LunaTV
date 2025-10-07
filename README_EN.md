@@ -392,7 +392,8 @@ Zeabur is a one-stop cloud deployment platform. Using pre-built Docker images al
    - Zeabur will automatically pull images and start services
    - After services are ready, you need to manually set up an access domain (see next step)
 
-5. **Set Up Access Domain (Required)**
+#### 5. Set Up Access Domain (Required)
+
    - In the LunaTV service page, click the "Networking" or "Network" tab
    - Click "Generate Domain" to create a free Zeabur domain (e.g., `xxx.zeabur.app`)
    - Or bind a custom domain:
