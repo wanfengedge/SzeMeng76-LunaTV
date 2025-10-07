@@ -55,6 +55,105 @@ export default function SkipController({
   const skipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoSkipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 拖动相关状态
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState(() => {
+    // 从 localStorage 读取保存的位置
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('skipControllerPosition');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('解析保存的位置失败:', e);
+        }
+      }
+    }
+    // 默认左下角
+    return { x: 16, y: window.innerHeight - 200 };
+  });
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // 拖动处理函数
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // 只在点击顶部标题栏时触发拖动
+    if ((e.target as HTMLElement).closest('.drag-handle')) {
+      setIsDragging(true);
+      dragStartPos.current = {
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      };
+    }
+  }, [position]);
+
+  // 触摸开始
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('.drag-handle')) {
+      setIsDragging(true);
+      const touch = e.touches[0];
+      dragStartPos.current = {
+        x: touch.clientX - position.x,
+        y: touch.clientY - position.y,
+      };
+    }
+  }, [position]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+
+    const newX = e.clientX - dragStartPos.current.x;
+    const newY = e.clientY - dragStartPos.current.y;
+
+    const maxX = window.innerWidth - (panelRef.current?.offsetWidth || 200);
+    const maxY = window.innerHeight - (panelRef.current?.offsetHeight || 200);
+
+    setPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY)),
+    });
+  }, [isDragging]);
+
+  // 触摸移动
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragging) return;
+
+    const touch = e.touches[0];
+    const newX = touch.clientX - dragStartPos.current.x;
+    const newY = touch.clientY - dragStartPos.current.y;
+
+    const maxX = window.innerWidth - (panelRef.current?.offsetWidth || 200);
+    const maxY = window.innerHeight - (panelRef.current?.offsetHeight || 200);
+
+    setPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY)),
+    });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('skipControllerPosition', JSON.stringify(position));
+    }
+  }, [position]);
+
+  // 添加全局事件监听
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove]);
+
   // 时间格式转换函数
   const timeToSeconds = useCallback((timeStr: string): number => {
     if (!timeStr || timeStr.trim() === '') return 0;
@@ -856,15 +955,28 @@ export default function SkipController({
         </div>
       )}
 
-      {/* 管理已有片段 - 优化布局避免重叠 */}
+      {/* 管理已有片段 - 优化为可拖动 */}
       {skipConfig && skipConfig.segments && skipConfig.segments.length > 0 && !isSettingMode && (
-        <div className="fixed bottom-4 left-4 z-[9998] max-w-sm bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 animate-fade-in">
+        <div
+          ref={panelRef}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          style={{
+            position: 'fixed',
+            left: `${position.x}px`,
+            top: `${position.y}px`,
+            cursor: isDragging ? 'grabbing' : 'default',
+            userSelect: isDragging ? 'none' : 'auto',
+          }}
+          className="z-[9998] max-w-sm bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 animate-fade-in"
+        >
           <div className="p-3">
-            <h4 className="font-medium mb-2 text-gray-900 dark:text-gray-100 text-sm flex items-center">
+            <h4 className="drag-handle font-medium mb-2 text-gray-900 dark:text-gray-100 text-sm flex items-center cursor-move select-none">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
               跳过配置
+              <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">可拖动</span>
             </h4>
             <div className="space-y-1">
               {skipConfig.segments.map((segment, index) => (
