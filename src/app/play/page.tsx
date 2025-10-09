@@ -366,6 +366,7 @@ function PlayPageClient() {
   const danmuPluginStateRef = useRef<any>(null); // 保存弹幕插件状态
   const isSourceChangingRef = useRef<boolean>(false); // 标记是否正在换源
   const isEpisodeChangingRef = useRef<boolean>(false); // 标记是否正在切换集数
+  const isSkipControllerTriggeredRef = useRef<boolean>(false); // 标记是否通过 SkipController 触发了下一集
 
   // 🚀 新增：连续切换源防抖和资源管理
   const sourceSwitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -2125,6 +2126,9 @@ function PlayPageClient() {
       if (artPlayerRef.current && !artPlayerRef.current.paused) {
         saveCurrentPlayProgress();
       }
+      // 🔑 标记通过 SkipController 触发了下一集
+      isSkipControllerTriggeredRef.current = true;
+      console.log('🎯 SkipController 触发下一集，设置标记');
       setCurrentEpisodeIndex(idx + 1);
     }
   };
@@ -3664,9 +3668,17 @@ function PlayPageClient() {
 
       // 监听视频播放结束事件，自动播放下一集
       artPlayerRef.current.on('video:ended', () => {
+        // 🔑 检查是否已经通过 SkipController 触发了下一集，避免重复触发
+        if (isSkipControllerTriggeredRef.current) {
+          console.log('⏭️ SkipController 已触发下一集，跳过 video:ended 自动播放');
+          isSkipControllerTriggeredRef.current = false; // 重置标记
+          return;
+        }
+
         const d = detailRef.current;
         const idx = currentEpisodeIndexRef.current;
         if (d && d.episodes && idx < d.episodes.length - 1) {
+          console.log('⏭️ video:ended 触发自动播放下一集');
           setTimeout(() => {
             setCurrentEpisodeIndex(idx + 1);
           }, 1000);

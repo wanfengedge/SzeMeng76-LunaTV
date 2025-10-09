@@ -764,6 +764,8 @@ export const UserMenu: React.FC = () => {
     setEnableAutoSkip(value);
     if (typeof window !== 'undefined') {
       localStorage.setItem('enableAutoSkip', JSON.stringify(value));
+      // 🔑 通知 SkipController localStorage 已更新
+      window.dispatchEvent(new Event('localStorageChanged'));
     }
   };
 
@@ -771,6 +773,8 @@ export const UserMenu: React.FC = () => {
     setEnableAutoNextEpisode(value);
     if (typeof window !== 'undefined') {
       localStorage.setItem('enableAutoNextEpisode', JSON.stringify(value));
+      // 🔑 通知 SkipController localStorage 已更新
+      window.dispatchEvent(new Event('localStorageChanged'));
     }
   };
 
