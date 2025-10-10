@@ -438,9 +438,9 @@ function SearchPageClient() {
       }
     );
 
-    // 获取滚动位置的函数 - 专门针对 body 滚动
+    // 获取滚动位置的函数 - 同时检测 body 和 documentElement
     const getScrollTop = () => {
-      return document.body.scrollTop || 0;
+      return document.body.scrollTop || document.documentElement.scrollTop || 0;
     };
 
     // 使用 requestAnimationFrame 持续检测滚动位置
@@ -879,7 +879,19 @@ function SearchPageClient() {
           {/* 搜索类型选项卡 */}
           <div className='max-w-2xl mx-auto mb-4'>
             <div className='flex items-center justify-center'>
-              <div className='inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 space-x-1'>
+              <div className='relative inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 space-x-1'>
+                {/* 滑动指示条背景 */}
+                <div
+                  className='absolute top-1 bottom-1 bg-white dark:bg-gray-700 rounded-md shadow-sm transition-all duration-300 ease-out'
+                  style={{
+                    left: searchType === 'video' ? '0.25rem' :
+                          searchType === 'netdisk' ? 'calc(25% + 0.125rem)' :
+                          searchType === 'youtube' ? 'calc(50% + 0rem)' :
+                          'calc(75% - 0.125rem)',
+                    width: 'calc(25% - 0.25rem)'
+                  }}
+                ></div>
+
                 <button
                   type='button'
                   onClick={() => {
@@ -899,9 +911,9 @@ function SearchPageClient() {
                       router.push(`/search?q=${encodeURIComponent(currentQuery)}`);
                     }
                   }}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`relative z-10 px-4 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
                     searchType === 'video'
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                      ? 'text-gray-900 dark:text-gray-100'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
@@ -924,9 +936,9 @@ function SearchPageClient() {
                       handleNetDiskSearch(currentQuery);
                     }
                   }}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`relative z-10 px-4 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
                     searchType === 'netdisk'
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                      ? 'text-gray-900 dark:text-gray-100'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
@@ -954,9 +966,9 @@ function SearchPageClient() {
                       setTimeout(() => handleYouTubeSearch(currentQuery), 0);
                     }
                   }}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`relative z-10 px-4 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
                     searchType === 'youtube'
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                      ? 'text-gray-900 dark:text-gray-100'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
@@ -980,9 +992,9 @@ function SearchPageClient() {
                       handleTmdbActorSearch(currentQuery, tmdbActorType, tmdbFilterState);
                     }
                   }}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`relative z-10 px-4 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
                     searchType === 'tmdb-actor'
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                      ? 'text-gray-900 dark:text-gray-100'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
@@ -993,8 +1005,8 @@ function SearchPageClient() {
           </div>
 
           <form onSubmit={handleSearch} className='max-w-2xl mx-auto'>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500' />
+            <div className='relative group'>
+              <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-all duration-300 group-focus-within:text-green-500 dark:group-focus-within:text-green-400 group-focus-within:scale-110' />
               <input
                 id='searchInput'
                 type='text'
@@ -1003,7 +1015,7 @@ function SearchPageClient() {
                 onFocus={handleInputFocus}
                 placeholder={searchType === 'video' ? '搜索电影、电视剧...' : searchType === 'netdisk' ? '搜索网盘资源...' : searchType === 'youtube' ? '搜索YouTube视频...' : '搜索演员姓名...'}
                 autoComplete="off"
-                className='w-full h-12 rounded-lg bg-gray-50/80 py-3 pl-10 pr-12 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:bg-white border border-gray-200/50 shadow-sm dark:bg-gray-800 dark:text-gray-300 dark:placeholder-gray-500 dark:focus:bg-gray-700 dark:border-gray-700'
+                className='w-full h-12 rounded-lg bg-gray-50/80 py-3 pl-10 pr-12 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:bg-white border border-gray-200/50 shadow-sm hover:shadow-md focus:shadow-lg dark:bg-gray-800 dark:text-gray-300 dark:placeholder-gray-500 dark:focus:bg-gray-700 dark:border-gray-700 transition-all duration-300'
               />
 
               {/* 清除按钮 */}
@@ -1670,13 +1682,22 @@ function SearchPageClient() {
       {/* 返回顶部悬浮按钮 */}
       <button
         onClick={scrollToTop}
-        className={`fixed bottom-20 md:bottom-6 right-6 z-[500] w-12 h-12 bg-green-500/90 hover:bg-green-500 text-white rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out flex items-center justify-center group ${showBackToTop
+        className={`fixed bottom-20 md:bottom-6 right-6 z-[500] w-12 h-12 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out flex items-center justify-center group relative overflow-hidden ${showBackToTop
           ? 'opacity-100 translate-y-0 pointer-events-auto'
           : 'opacity-0 translate-y-4 pointer-events-none'
           }`}
         aria-label='返回顶部'
       >
-        <ChevronUp className='w-6 h-6 transition-transform group-hover:scale-110' />
+        {/* 渐变背景 */}
+        <div className='absolute inset-0 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 group-hover:from-green-600 group-hover:via-emerald-600 group-hover:to-teal-600 transition-all duration-300'></div>
+
+        {/* 发光效果 */}
+        <div className='absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-400 opacity-0 group-hover:opacity-50 blur-md transition-all duration-300'></div>
+
+        {/* 脉冲光环 */}
+        <div className='absolute inset-0 rounded-full border-2 border-white/30 animate-ping group-hover:opacity-0 transition-opacity duration-300'></div>
+
+        <ChevronUp className='w-6 h-6 text-white relative z-10 transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1' />
       </button>
     </PageLayout>
   );
