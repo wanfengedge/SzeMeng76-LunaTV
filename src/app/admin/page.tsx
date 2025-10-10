@@ -49,6 +49,7 @@ import AIRecommendConfig from '@/components/AIRecommendConfig';
 import CacheManager from '@/components/CacheManager';
 import DataMigration from '@/components/DataMigration';
 import TVBoxSecurityConfig from '@/components/TVBoxSecurityConfig';
+import { TVBoxTokenCell, TVBoxTokenModal } from '@/components/TVBoxTokenManager';
 import YouTubeConfig from '@/components/YouTubeConfig';
 import PageLayout from '@/components/PageLayout';
 
@@ -403,6 +404,15 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
   } | null>(null);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
+
+  // 🔑 TVBox Token 管理状态
+  const [showTVBoxTokenModal, setShowTVBoxTokenModal] = useState(false);
+  const [tvboxTokenUser, setTVBoxTokenUser] = useState<{
+    username: string;
+    tvboxToken?: string;
+    tvboxEnabledSources?: string[];
+  } | null>(null);
+  const [selectedTVBoxSources, setSelectedTVBoxSources] = useState<string[]>([]);
 
   // 当前登录用户名
   const currentUsername = getAuthInfoFromBrowserCookie()?.username || null;
@@ -1283,6 +1293,12 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                 </th>
                 <th
                   scope='col'
+                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                >
+                  TVBox Token
+                </th>
+                <th
+                  scope='col'
                   className='px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
                 >
                   操作
@@ -1408,6 +1424,32 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                                   user.username === currentUsername))) && (
                                 <button
                                   onClick={() => handleConfigureUserApis(user)}
+                                  className={buttonStyles.roundedPrimary}
+                                >
+                                  配置
+                                </button>
+                              )}
+                          </div>
+                        </td>
+                        {/* TVBox Token 列 */}
+                        <td className='px-6 py-4 whitespace-nowrap'>
+                          <div className='flex items-center space-x-2'>
+                            <TVBoxTokenCell tvboxToken={user.tvboxToken} />
+                            {/* 配置 TVBox Token 按钮 */}
+                            {(role === 'owner' ||
+                              (role === 'admin' &&
+                                (user.role === 'user' ||
+                                  user.username === currentUsername))) && (
+                                <button
+                                  onClick={() => {
+                                    setTVBoxTokenUser({
+                                      username: user.username,
+                                      tvboxToken: user.tvboxToken,
+                                      tvboxEnabledSources: user.tvboxEnabledSources
+                                    });
+                                    setSelectedTVBoxSources(user.tvboxEnabledSources || []);
+                                    setShowTVBoxTokenModal(true);
+                                  }}
                                   className={buttonStyles.roundedPrimary}
                                 >
                                   配置
@@ -2258,6 +2300,23 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
             </div>
           </div>
         </div>,
+        document.body
+      )}
+
+      {/* TVBox Token 管理弹窗 */}
+      {showTVBoxTokenModal && tvboxTokenUser && createPortal(
+        <TVBoxTokenModal
+          username={tvboxTokenUser.username}
+          tvboxToken={tvboxTokenUser.tvboxToken}
+          tvboxEnabledSources={selectedTVBoxSources}
+          allSources={(config?.SourceConfig || []).filter(s => !s.disabled).map(s => ({ key: s.key, name: s.name }))}
+          onClose={() => {
+            setShowTVBoxTokenModal(false);
+            setTVBoxTokenUser(null);
+            setSelectedTVBoxSources([]);
+          }}
+          onUpdate={refreshConfig}
+        />,
         document.body
       )}
 
