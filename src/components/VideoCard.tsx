@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,react-hooks/exhaustive-deps,@typescript-eslint/no-empty-function */
 
-import { ExternalLink, Heart, Link, PlayCircleIcon, Radio, Trash2 } from 'lucide-react';
+import { ExternalLink, Heart, Link, PlayCircleIcon, Radio, Star, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, {
@@ -84,6 +84,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
   const router = useRouter();
   const [favorited, setFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false); // 图片加载状态
   const [showMobileActions, setShowMobileActions] = useState(false);
   const [searchFavorited, setSearchFavorited] = useState<boolean | null>(null); // 搜索结果的收藏状态
 
@@ -323,6 +324,49 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
     longPressDelay: 500,
   });
 
+  // 根据评分获取徽章样式
+  const getRatingBadgeStyle = useCallback((rateStr: string) => {
+    const rateNum = parseFloat(rateStr);
+
+    if (rateNum >= 8.5) {
+      // 高分：金色 + 发光
+      return {
+        bgColor: 'bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600',
+        ringColor: 'ring-2 ring-yellow-400/50',
+        shadowColor: 'shadow-lg shadow-yellow-500/50',
+        textColor: 'text-white',
+        glowClass: 'group-hover:shadow-yellow-500/70',
+      };
+    } else if (rateNum >= 7.0) {
+      // 中高分：蓝色
+      return {
+        bgColor: 'bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700',
+        ringColor: 'ring-2 ring-blue-400/40',
+        shadowColor: 'shadow-md shadow-blue-500/30',
+        textColor: 'text-white',
+        glowClass: 'group-hover:shadow-blue-500/50',
+      };
+    } else if (rateNum >= 6.0) {
+      // 中分：绿色
+      return {
+        bgColor: 'bg-gradient-to-br from-green-500 via-green-600 to-green-700',
+        ringColor: 'ring-2 ring-green-400/40',
+        shadowColor: 'shadow-md shadow-green-500/30',
+        textColor: 'text-white',
+        glowClass: 'group-hover:shadow-green-500/50',
+      };
+    } else {
+      // 低分：灰色
+      return {
+        bgColor: 'bg-gradient-to-br from-gray-500 via-gray-600 to-gray-700',
+        ringColor: 'ring-2 ring-gray-400/40',
+        shadowColor: 'shadow-md shadow-gray-500/30',
+        textColor: 'text-white',
+        glowClass: 'group-hover:shadow-gray-500/50',
+      };
+    }
+  }, []);
+
   const config = useMemo(() => {
     const configs = {
       playrecord: {
@@ -505,7 +549,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
   return (
     <>
       <div
-        className='group relative w-full rounded-lg bg-transparent cursor-pointer transition-all duration-300 ease-in-out hover:scale-[1.05] hover:z-[500]'
+        className='group relative w-full rounded-lg bg-transparent cursor-pointer transition-all duration-300 ease-in-out hover:scale-[1.05] hover:z-[500] hover:drop-shadow-2xl'
         onClick={handleClick}
         {...longPressProps}
         style={{
@@ -553,6 +597,16 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
             return false;
           }}
         >
+          {/* 渐变光泽动画层 */}
+          <div
+            className='absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10'
+            style={{
+              background: 'linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.15) 55%, transparent 70%)',
+              backgroundSize: '200% 100%',
+              animation: 'card-shimmer 2.5s ease-in-out infinite',
+            }}
+          />
+
           {/* 骨架屏 */}
           {!isLoading && <ImagePlaceholder aspectRatio='aspect-[2/3]' />}
           {/* 图片 */}
@@ -560,10 +614,15 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
             src={processImageUrl(actualPoster)}
             alt={actualTitle}
             fill
-            className={origin === 'live' ? 'object-contain' : 'object-cover'}
+            className={`${origin === 'live' ? 'object-contain' : 'object-cover'} transition-all duration-700 ease-out ${
+              imageLoaded ? 'opacity-100 blur-0 scale-100' : 'opacity-0 blur-md scale-105'
+            }`}
             referrerPolicy='no-referrer'
             loading='lazy'
-            onLoadingComplete={() => setIsLoading(true)}
+            onLoadingComplete={() => {
+              setIsLoading(true);
+              setImageLoaded(true);
+            }}
             onError={(e) => {
               // 图片加载失败时的重试机制
               const img = e.target as HTMLImageElement;
@@ -591,9 +650,9 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
             }}
           />
 
-          {/* 悬浮遮罩 */}
+          {/* 悬浮遮罩 - 玻璃态效果 */}
           <div
-            className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100'
+            className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-all duration-300 ease-in-out opacity-0 group-hover:opacity-100 backdrop-blur-[2px]'
             style={{
               WebkitUserSelect: 'none',
               userSelect: 'none',
@@ -690,10 +749,10 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
             </div>
           )}
 
-          {/* 年份徽章 */}
+          {/* 年份徽章 - 美化版 */}
           {config.showYear && actualYear && actualYear !== 'unknown' && actualYear.trim() !== '' && (
             <div
-              className="absolute top-2 bg-black/50 text-white text-xs font-medium px-2 py-1 rounded backdrop-blur-sm shadow-sm transition-all duration-300 ease-out group-hover:opacity-90 left-2"
+              className="absolute top-2 left-2 bg-gradient-to-br from-indigo-500/90 via-purple-500/90 to-pink-500/90 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg ring-2 ring-white/30 transition-all duration-300 ease-out group-hover:scale-110 group-hover:shadow-purple-500/50"
               style={{
                 WebkitUserSelect: 'none',
                 userSelect: 'none',
@@ -704,14 +763,17 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
                 return false;
               }}
             >
-              {actualYear}
+              <span className="flex items-center gap-1">
+                <span className="text-[10px]">📅</span>
+                {actualYear}
+              </span>
             </div>
           )}
 
-          {/* 已完结徽章 */}
+          {/* 已完结徽章 - 美化版，放在底部左侧 */}
           {remarks && isSeriesCompleted(remarks) && (
             <div
-              className="absolute top-2 left-2 bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-md transition-all duration-300 ease-out group-hover:scale-110"
+              className="absolute bottom-2 left-2 bg-gradient-to-br from-blue-500/95 via-indigo-500/95 to-purple-600/95 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg ring-2 ring-white/30 transition-all duration-300 ease-out group-hover:scale-110 group-hover:shadow-blue-500/50"
               style={{
                 WebkitUserSelect: 'none',
                 userSelect: 'none',
@@ -722,31 +784,38 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
                 return false;
               }}
             >
-              已完结
+              <span className="flex items-center gap-1">
+                <span className="text-[10px]">✓</span>
+                已完结
+              </span>
             </div>
           )}
 
-          {/* 徽章 */}
-          {config.showRating && rate && (
-            <div
-              className='absolute top-2 right-2 bg-pink-500 text-white text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ease-out group-hover:scale-110'
-              style={{
-                WebkitUserSelect: 'none',
-                userSelect: 'none',
-                WebkitTouchCallout: 'none',
-              } as React.CSSProperties}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                return false;
-              }}
-            >
-              {rate}
-            </div>
-          )}
+          {/* 评分徽章 - 动态颜色 */}
+          {config.showRating && rate && (() => {
+            const badgeStyle = getRatingBadgeStyle(rate);
+            return (
+              <div
+                className={`absolute top-2 right-2 ${badgeStyle.bgColor} ${badgeStyle.ringColor} ${badgeStyle.shadowColor} ${badgeStyle.textColor} ${badgeStyle.glowClass} text-xs font-bold rounded-full flex flex-col items-center justify-center transition-all duration-300 ease-out group-hover:scale-110 backdrop-blur-sm w-9 h-9 sm:w-10 sm:h-10`}
+                style={{
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                } as React.CSSProperties}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  return false;
+                }}
+              >
+                <Star size={10} className="fill-current mb-0.5" />
+                <span className="text-[10px] sm:text-xs font-extrabold leading-none">{rate}</span>
+              </div>
+            );
+          })()}
 
           {actualEpisodes && actualEpisodes > 1 && (
             <div
-              className='absolute top-2 right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-md transition-all duration-300 ease-out group-hover:scale-110'
+              className='absolute top-2 right-2 bg-gradient-to-br from-emerald-500/90 via-teal-500/90 to-cyan-500/90 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg ring-2 ring-white/30 transition-all duration-300 ease-out group-hover:scale-110 group-hover:shadow-emerald-500/50'
               style={{
                 WebkitUserSelect: 'none',
                 userSelect: 'none',
@@ -757,9 +826,12 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
                 return false;
               }}
             >
-              {currentEpisode
-                ? `${currentEpisode}/${actualEpisodes}`
-                : actualEpisodes}
+              <span className="flex items-center gap-1">
+                <span className="text-[10px]">🎬</span>
+                {currentEpisode
+                  ? `${currentEpisode}/${actualEpisodes}`
+                  : `${actualEpisodes}集`}
+              </span>
             </div>
           )}
 
@@ -837,7 +909,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
                   } as React.CSSProperties}
                 >
                   <div
-                    className='bg-gray-700 text-white text-xs font-bold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shadow-md hover:bg-gray-600 hover:scale-[1.1] transition-all duration-300 ease-out cursor-pointer'
+                    className='bg-gradient-to-br from-orange-500/95 via-amber-500/95 to-yellow-500/95 backdrop-blur-md text-white text-xs font-bold w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shadow-lg ring-2 ring-white/30 hover:scale-[1.15] transition-all duration-300 ease-out cursor-pointer hover:shadow-orange-500/50'
                     style={{
                       WebkitUserSelect: 'none',
                       userSelect: 'none',
@@ -848,7 +920,10 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
                       return false;
                     }}
                   >
-                    {sourceCount}
+                    <span className="flex flex-col items-center justify-center leading-none">
+                      <span className="text-[9px] sm:text-[10px] font-normal">源</span>
+                      <span className="text-xs sm:text-sm font-extrabold">{sourceCount}</span>
+                    </span>
                   </div>
 
                   {/* 播放源详情悬浮框 */}

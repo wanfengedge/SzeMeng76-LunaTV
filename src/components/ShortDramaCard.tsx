@@ -26,6 +26,7 @@ export default function ShortDramaCard({
   className = '',
 }: ShortDramaCardProps) {
   const [realEpisodeCount, setRealEpisodeCount] = useState<number>(drama.episode_count);
+  const [imageLoaded, setImageLoaded] = useState(false); // 图片加载状态
 
   // 获取真实集数（带统一缓存）
   useEffect(() => {
@@ -91,33 +92,50 @@ export default function ShortDramaCard({
   };
 
   return (
-    <div className={`group relative ${className}`}>
+    <div className={`group relative ${className} transition-all duration-300 ease-in-out hover:scale-[1.05] hover:z-[500] hover:drop-shadow-2xl`}>
       <Link
         href={`/play?source=shortdrama&id=${drama.id}&title=${encodeURIComponent(drama.name)}`}
         className="block"
       >
         {/* 封面图片 */}
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-800">
-          <img
-            src={drama.cover}
-            alt={drama.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/placeholder-cover.jpg';
+          {/* 渐变光泽动画层 */}
+          <div
+            className='absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10'
+            style={{
+              background: 'linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.15) 55%, transparent 70%)',
+              backgroundSize: '200% 100%',
+              animation: 'card-shimmer 2.5s ease-in-out infinite',
             }}
           />
 
-          {/* 悬浮播放按钮 */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg">
+          <img
+            src={drama.cover}
+            alt={drama.name}
+            className={`h-full w-full object-cover transition-all duration-700 ease-out ${
+              imageLoaded ? 'opacity-100 blur-0 scale-100 group-hover:scale-105' : 'opacity-0 blur-md scale-105'
+            }`}
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/placeholder-cover.jpg';
+              setImageLoaded(true);
+            }}
+          />
+
+          {/* 悬浮播放按钮 - 玻璃态效果 */}
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/80 via-black/20 to-transparent backdrop-blur-[2px] opacity-0 transition-all duration-300 group-hover:opacity-100">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg transition-transform group-hover:scale-110">
               <Play className="h-5 w-5 ml-0.5" fill="currentColor" />
             </div>
           </div>
 
-          {/* 集数标识 */}
-          <div className="absolute top-2 left-2 rounded bg-black/70 px-2 py-1 text-xs text-white">
-            {realEpisodeCount}集
+          {/* 集数标识 - 玻璃态美化 */}
+          <div className="absolute top-2 left-2 rounded-full bg-gradient-to-br from-purple-500/90 via-pink-500/90 to-rose-500/90 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-white shadow-lg ring-2 ring-white/30 transition-all duration-300 group-hover:scale-110 group-hover:shadow-purple-500/50">
+            <span className="flex items-center gap-1">
+              <Play size={10} className="fill-current" />
+              {realEpisodeCount}集
+            </span>
           </div>
 
           {/* 评分 */}
