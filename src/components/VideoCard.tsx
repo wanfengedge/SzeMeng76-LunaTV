@@ -1079,21 +1079,24 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
             </span>
             {/* 增强的 tooltip */}
             <div
-              className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gradient-to-br from-gray-800 to-gray-900 text-white text-xs rounded-lg shadow-xl border border-white/10 opacity-0 invisible peer-hover:opacity-100 peer-hover:visible transition-all duration-200 ease-out delay-100 pointer-events-none z-50 backdrop-blur-sm'
+              className='absolute bottom-full left-0 mb-2 px-3 py-2 bg-gradient-to-br from-gray-800 to-gray-900 text-white text-xs rounded-lg shadow-xl border border-white/10 opacity-0 invisible peer-hover:opacity-100 peer-hover:visible transition-all duration-200 ease-out delay-100 pointer-events-none z-50 backdrop-blur-sm'
               style={{
                 WebkitUserSelect: 'none',
                 userSelect: 'none',
                 WebkitTouchCallout: 'none',
+                minWidth: '200px',
                 maxWidth: 'min(90vw, 400px)',
                 whiteSpace: 'normal',
                 wordBreak: 'break-word',
+                left: '50%',
+                transform: 'translateX(-50%)',
               } as React.CSSProperties}
               onContextMenu={(e) => {
                 e.preventDefault();
                 return false;
               }}
             >
-              <span className='font-medium leading-relaxed'>{actualTitle}</span>
+              <span className='font-medium leading-relaxed block text-center'>{actualTitle}</span>
               <div
                 className='absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-gray-800'
                 style={{
