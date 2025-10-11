@@ -367,6 +367,7 @@ function PlayPageClient() {
   const isSourceChangingRef = useRef<boolean>(false); // 标记是否正在换源
   const isEpisodeChangingRef = useRef<boolean>(false); // 标记是否正在切换集数
   const isSkipControllerTriggeredRef = useRef<boolean>(false); // 标记是否通过 SkipController 触发了下一集
+  const videoEndedHandledRef = useRef<boolean>(false); // 🔥 标记当前视频的 video:ended 事件是否已经被处理过（防止多个监听器重复触发）
 
   // 🚀 新增：连续切换源防抖和资源管理
   const sourceSwitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -2128,7 +2129,6 @@ function PlayPageClient() {
       }
       // 🔑 标记通过 SkipController 触发了下一集
       isSkipControllerTriggeredRef.current = true;
-      console.log('🎯 SkipController 触发下一集，设置标记');
       setCurrentEpisodeIndex(idx + 1);
     }
   };
@@ -3527,6 +3527,9 @@ function PlayPageClient() {
 
       // 监听视频可播放事件，这时恢复播放进度更可靠
       artPlayerRef.current.on('video:canplay', () => {
+        // 🔥 重置 video:ended 处理标志，因为这是新视频
+        videoEndedHandledRef.current = false;
+
         // 若存在需要恢复的播放进度，则跳转
         if (resumeTimeRef.current && resumeTimeRef.current > 0) {
           try {
@@ -3668,17 +3671,26 @@ function PlayPageClient() {
 
       // 监听视频播放结束事件，自动播放下一集
       artPlayerRef.current.on('video:ended', () => {
+        const idx = currentEpisodeIndexRef.current;
+
+        // 🔥 关键修复：首先检查这个 video:ended 事件是否已经被处理过
+        if (videoEndedHandledRef.current) {
+          return;
+        }
+
         // 🔑 检查是否已经通过 SkipController 触发了下一集，避免重复触发
         if (isSkipControllerTriggeredRef.current) {
-          console.log('⏭️ SkipController 已触发下一集，跳过 video:ended 自动播放');
-          isSkipControllerTriggeredRef.current = false; // 重置标记
+          videoEndedHandledRef.current = true;
+          // 🔥 关键修复：延迟重置标志，等待新集数开始加载
+          setTimeout(() => {
+            isSkipControllerTriggeredRef.current = false;
+          }, 2000);
           return;
         }
 
         const d = detailRef.current;
-        const idx = currentEpisodeIndexRef.current;
         if (d && d.episodes && idx < d.episodes.length - 1) {
-          console.log('⏭️ video:ended 触发自动播放下一集');
+          videoEndedHandledRef.current = true;
           setTimeout(() => {
             setCurrentEpisodeIndex(idx + 1);
           }, 1000);

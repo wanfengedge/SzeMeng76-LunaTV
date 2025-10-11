@@ -148,13 +148,18 @@ export default function ShortDramaCard({
         </div>
 
         {/* 信息区域 */}
-        <div className="mt-2 space-y-1">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        <div className="mt-2 space-y-1.5">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 dark:group-hover:from-blue-400 dark:group-hover:to-purple-400 transition-all duration-300">
             {drama.name}
           </h3>
 
-          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>更新: {formatUpdateTime(drama.update_time)}</span>
+          <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-700/50">
+              <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span className="text-green-700 dark:text-green-300 font-medium">{formatUpdateTime(drama.update_time)}</span>
+            </div>
           </div>
 
           {/* 描述信息（可选） */}
