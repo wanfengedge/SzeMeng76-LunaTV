@@ -216,6 +216,7 @@ async function getInitConfig(configFile: string, subConfig: {
       DoubanImageProxy: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '',
       DisableYellowFilter:
         process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
+      ShowAdultContent: false, // 默认不显示成人内容，可在管理面板修改
       FluidSearch:
         process.env.NEXT_PUBLIC_FLUID_SEARCH !== 'false',
       // TMDB配置默认值
@@ -496,7 +497,12 @@ export async function getCacheTime(): Promise<number> {
 
 export async function getAvailableApiSites(user?: string): Promise<ApiSite[]> {
   const config = await getConfig();
-  const allApiSites = config.SourceConfig.filter((s) => !s.disabled);
+  // 过滤掉禁用的源，如果未启用成人内容则同时过滤掉成人资源
+  const allApiSites = config.SourceConfig.filter((s) => {
+    if (s.disabled) return false;
+    if (!config.SiteConfig.ShowAdultContent && s.is_adult) return false;
+    return true;
+  });
 
   if (!user) {
     return allApiSites;
