@@ -12,7 +12,7 @@ import {
 } from '@/lib/bangumi.client';
 import { getRecommendedShortDramas } from '@/lib/shortdrama.client';
 import { cleanExpiredCache } from '@/lib/shortdrama-cache';
-import { ShortDramaItem } from '@/lib/types';
+import { ShortDramaItem, ReleaseCalendarItem } from '@/lib/types';
 // 客户端收藏 API
 import {
   clearAllFavorites,
@@ -46,6 +46,7 @@ function HomeClient() {
   const [bangumiCalendarData, setBangumiCalendarData] = useState<
     BangumiCalendarData[]
   >([]);
+  const [upcomingReleases, setUpcomingReleases] = useState<ReleaseCalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { announcement } = useSite();
   const [username, setUsername] = useState<string>('');
@@ -159,8 +160,8 @@ function HomeClient() {
       try {
         setLoading(true);
 
-        // 并行获取热门电影、热门剧集、热门综艺和热门短剧
-        const [moviesData, tvShowsData, varietyShowsData, shortDramasData, bangumiCalendarData] =
+        // 并行获取热门电影、热门剧集、热门综艺、热门短剧和即将上映
+        const [moviesData, tvShowsData, varietyShowsData, shortDramasData, bangumiCalendarData, upcomingReleasesData] =
           await Promise.allSettled([
             getDoubanCategories({
               kind: 'movie',
@@ -171,6 +172,13 @@ function HomeClient() {
             getDoubanCategories({ kind: 'tv', category: 'show', type: 'show' }),
             getRecommendedShortDramas(undefined, 8),
             GetBangumiCalendarData(),
+            fetch('/api/release-calendar?limit=20').then(res => {
+              if (!res.ok) {
+                console.error('获取即将上映数据失败，状态码:', res.status);
+                return { items: [] };
+              }
+              return res.json();
+            }),
           ]);
 
         // 处理电影数据并获取前2条的详情
@@ -341,6 +349,30 @@ function HomeClient() {
           console.warn('Bangumi接口失败或返回数据格式错误:',
             bangumiCalendarData.status === 'rejected' ? bangumiCalendarData.reason : '数据格式错误');
           setBangumiCalendarData([]);
+        }
+
+        // 处理即将上映数据
+        if (upcomingReleasesData.status === 'fulfilled' && upcomingReleasesData.value?.items) {
+          const releases = upcomingReleasesData.value.items;
+          console.log('📅 获取到的即将上映数据:', releases.length, '条');
+
+          // 过滤出未来上映的作品（未来30天内）
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const thirtyDaysLater = new Date(today);
+          thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+
+          const upcoming = releases.filter((item: ReleaseCalendarItem) => {
+            const releaseDate = new Date(item.releaseDate);
+            const isUpcoming = releaseDate >= today && releaseDate <= thirtyDaysLater;
+            return isUpcoming;
+          });
+
+          console.log('📅 过滤后的即将上映数据:', upcoming.length, '条');
+          setUpcomingReleases(upcoming.slice(0, 10)); // 最多显示10个
+        } else {
+          console.warn('获取即将上映数据失败:', upcomingReleasesData.status === 'rejected' ? upcomingReleasesData.reason : '数据格式错误');
+          setUpcomingReleases([]);
         }
       } catch (error) {
         console.error('获取推荐数据失败:', error);
@@ -631,6 +663,51 @@ function HomeClient() {
 
               {/* 继续观看 */}
               <ContinueWatching />
+
+              {/* 即将上映 */}
+              {(() => {
+                console.log('🔍 即将上映 section 渲染检查:', { loading, upcomingReleasesCount: upcomingReleases.length });
+                return null;
+              })()}
+              {!loading && upcomingReleases.length > 0 && (
+                <section className='mb-8'>
+                  <div className='mb-4 flex items-center justify-between'>
+                    <SectionTitle title="即将上映" icon={Calendar} iconColor="text-orange-500" />
+                    <Link
+                      href='/release-calendar'
+                      className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors'
+                    >
+                      查看更多
+                      <ChevronRight className='w-4 h-4 ml-1' />
+                    </Link>
+                  </div>
+                  <ScrollableRow>
+                    {upcomingReleases.map((release, index) => {
+                      // 计算距离上映还有几天
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const releaseDate = new Date(release.releaseDate);
+                      const daysUntilRelease = Math.ceil((releaseDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+                      return (
+                        <div
+                          key={`${release.id}-${index}`}
+                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                        >
+                          <VideoCard
+                            from='douban'
+                            title={release.title}
+                            poster={release.cover || '/placeholder-poster.jpg'}
+                            year={release.releaseDate.split('-')[0]}
+                            type={release.type}
+                            remarks={`${daysUntilRelease}天后上映`}
+                          />
+                        </div>
+                      );
+                    })}
+                  </ScrollableRow>
+                </section>
+              )}
 
               {/* 热门电影 */}
               <section className='mb-8'>
