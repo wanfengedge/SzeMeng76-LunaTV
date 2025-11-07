@@ -1793,8 +1793,9 @@ function PlayPageClient() {
       if (currentSource === 'shortdrama' && currentId) {
         sourcesInfo = await fetchSourceDetail(currentSource, currentId);
       } else {
-        // 其他情况先搜索
+        // 其他情况先搜索所有视频源
         sourcesInfo = await fetchSourcesData(searchTitle || videoTitle);
+
         if (
           currentSource &&
           currentId &&
@@ -1806,12 +1807,19 @@ function PlayPageClient() {
         }
 
         // 如果有 shortdrama_id，额外添加短剧源到可用源列表
-        if (shortdramaId && !sourcesInfo.some((source) => source.source === 'shortdrama' && source.id === shortdramaId)) {
+        if (shortdramaId) {
           try {
             const shortdramaSource = await fetchSourceDetail('shortdrama', shortdramaId);
             if (shortdramaSource.length > 0) {
-              sourcesInfo.push(...shortdramaSource);
-              console.log('已添加短剧源到可用源列表');
+              // 检查是否已存在相同的短剧源，避免重复
+              const existingShortdrama = sourcesInfo.find(
+                (s) => s.source === 'shortdrama' && s.id === shortdramaId
+              );
+              if (!existingShortdrama) {
+                sourcesInfo.push(...shortdramaSource);
+                // 重新设置 availableSources 以包含短剧源
+                setAvailableSources(sourcesInfo);
+              }
             }
           } catch (error) {
             console.error('添加短剧源失败:', error);
@@ -4357,7 +4365,7 @@ function PlayPageClient() {
 
               {/* 关键信息行 */}
               <div className='flex flex-wrap items-center gap-3 text-base mb-4 opacity-80 flex-shrink-0'>
-                {detail?.class && (
+                {detail?.class && detail.class !== '0' && (
                   <span className='text-green-600 font-semibold'>
                     {detail.class}
                   </span>
