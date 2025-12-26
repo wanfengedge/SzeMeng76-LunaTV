@@ -1,5 +1,6 @@
 // 观影室播放同步Hook (基于 MoonTVPlus 实现，适配外部 watch-room-server)
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { WatchRoomContextType } from '@/components/WatchRoomProvider';
 import type { PlayState } from '@/types/watch-room.types';
 
@@ -13,6 +14,8 @@ interface UseWatchRoomSyncOptions {
   currentSource: string;  // 当前播放源
   videoTitle: string;  // 视频标题
   videoYear: string;  // 视频年份
+  searchTitle?: string;  // 搜索标题（用于搜索时的原始标题）
+  setCurrentEpisodeIndex: (index: number) => void;  // 切换集数的函数
 }
 
 // 房主当前播放状态（用于成员重新同步）
@@ -22,6 +25,10 @@ export interface OwnerPlayState {
   episode: number;
   currentTime: number;
   videoName?: string;
+  videoYear?: string;
+  searchTitle?: string;
+  poster?: string;
+  totalEpisodes?: number;
 }
 
 export function useWatchRoomSync({
@@ -33,8 +40,11 @@ export function useWatchRoomSync({
   videoId,
   currentSource,
   videoTitle,
-  videoYear
+  videoYear,
+  searchTitle,
+  setCurrentEpisodeIndex
 }: UseWatchRoomSyncOptions) {
+  const router = useRouter();
   const isHandlingRemoteCommandRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
 
@@ -77,12 +87,49 @@ export function useWatchRoomSync({
     return stateVideoId === videoId && stateSource === currentSource;
   }, [videoId, currentSource]);
 
-  // 跳转到指定状态（使用 window.location 强制刷新）
+  // 跳转到指定状态（智能切换：同剧切集数，异剧用路由）
   const navigateToState = useCallback((state: OwnerPlayState) => {
-    const url = `/play?id=${state.videoId}&source=${encodeURIComponent(state.source)}&index=${state.episode}&t=${Math.floor(state.currentTime || 0)}`;
-    console.log('[PlaySync] Navigating to:', url);
-    window.location.href = url;
-  }, []);
+    const isSameShow = state.videoId === videoId && state.source === currentSource;
+
+    if (isSameShow) {
+      // 同一部剧，只需要切换集数，不刷新页面
+      console.log('[PlaySync] Same show, switching episode:', state.episode);
+
+      if (state.episode !== episodeIndex) {
+        setCurrentEpisodeIndex(state.episode);
+      }
+
+      // 等待播放器切换集数后，seek 到指定时间
+      setTimeout(() => {
+        if (artPlayerRef.current && state.currentTime > 0) {
+          console.log('[PlaySync] Seeking to:', state.currentTime);
+          artPlayerRef.current.currentTime = state.currentTime;
+        }
+      }, 1000);  // 给播放器足够时间加载新集数
+
+    } else {
+      // 不同的剧，使用 router.push 跳转（客户端路由，不刷新页面）
+      const params = new URLSearchParams();
+      params.set('id', state.videoId);
+      params.set('source', state.source);
+      params.set('index', String(state.episode));
+      if (state.currentTime > 0) {
+        params.set('t', String(Math.floor(state.currentTime)));
+      }
+      if (state.videoName) {
+        params.set('title', state.videoName);
+      }
+      if (state.videoYear) {
+        params.set('year', state.videoYear);
+      }
+      if (state.searchTitle) {
+        params.set('stitle', state.searchTitle);
+      }
+      const url = `/play?${params.toString()}`;
+      console.log('[PlaySync] Different show, routing to:', url);
+      router.push(url);
+    }
+  }, [videoId, currentSource, episodeIndex, setCurrentEpisodeIndex, artPlayerRef, router]);
 
   // 广播播放状态（任何人都可以触发同步）
   const broadcastPlayState = useCallback(() => {
@@ -99,8 +146,11 @@ export function useWatchRoomSync({
       videoId: videoId,
       videoName: videoTitle || detail?.title || '',
       videoYear: videoYear || detail?.year || '',
+      searchTitle: searchTitle,
       episode: episodeIndex,
       source: currentSource,
+      poster: detail?.poster || '',
+      totalEpisodes: detail?.episodes?.length || undefined,
     };
 
     // 使用防抖，避免频繁发送
@@ -139,6 +189,10 @@ export function useWatchRoomSync({
       episode: roomState.episode || 0,
       currentTime: roomState.currentTime || 0,
       videoName: roomState.videoName,
+      videoYear: roomState.videoYear,
+      searchTitle: roomState.searchTitle,
+      poster: roomState.poster,
+      totalEpisodes: roomState.totalEpisodes,
     };
     setOwnerState(newOwnerState);
 
@@ -182,6 +236,10 @@ export function useWatchRoomSync({
         episode: state.episode || 0,
         currentTime: state.currentTime || 0,
         videoName: state.videoName,
+        videoYear: state.videoYear,
+        searchTitle: state.searchTitle,
+        poster: state.poster,
+        totalEpisodes: state.totalEpisodes,
       };
       setOwnerState(newOwnerState);
 
@@ -321,6 +379,10 @@ export function useWatchRoomSync({
         episode: state.episode || 0,
         currentTime: state.currentTime || 0,
         videoName: state.videoName,
+        videoYear: state.videoYear,
+        searchTitle: state.searchTitle,
+        poster: state.poster,
+        totalEpisodes: state.totalEpisodes,
       };
       setOwnerState(newOwnerState);
 
@@ -505,8 +567,11 @@ export function useWatchRoomSync({
         videoId: videoId,
         videoName: videoTitle || detail?.title || '',
         videoYear: videoYear || detail?.year || '',
+        searchTitle: searchTitle,
         episode: episodeIndex,
         source: currentSource,
+        poster: detail?.poster || '',
+        totalEpisodes: detail?.episodes?.length || undefined,
       };
 
       console.log('[PlaySync] Broadcasting play:change:', state);
