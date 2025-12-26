@@ -68,7 +68,7 @@ export default function NetDiskSearchResults({ results, loading, error, total }:
   // 播放网盘分享链接
   const handlePlay = async (shareUrl: string, sharePwd: string, linkKey: string, platform: string) => {
     // 检查平台是否支持
-    if (platform !== 'aliyun' && platform !== 'pikpak') {
+    if (platform !== 'aliyun' && platform !== 'pikpak' && platform !== '123' && platform !== '115') {
       alert(`暂不支持 ${CLOUD_TYPES[platform as keyof typeof CLOUD_TYPES]?.name || platform} 的在线播放`);
       return;
     }
@@ -521,7 +521,7 @@ export default function NetDiskSearchResults({ results, loading, error, total }:
                       {/* 操作按钮 */}
                       <div className="sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row gap-2">
                         {/* 播放按钮 - 仅对阿里云盘和 PikPak 显示 */}
-                        {(type === 'aliyun' || type === 'pikpak') && (
+                        {(type === 'aliyun' || type === 'pikpak' || type === '123' || type === '115') && (
                           <button
                             onClick={() => handlePlay(link.url, link.password, linkKey, type)}
                             disabled={playingLinks[linkKey]}

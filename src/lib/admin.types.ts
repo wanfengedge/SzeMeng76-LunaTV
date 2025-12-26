@@ -90,6 +90,13 @@ export interface AdminConfig {
       username?: string;                 // PikPak账号（可选）
       password?: string;                 // PikPak密码（可选）
     };
+    pan123?: {
+      enabled: boolean;                  // 是否启用123网盘分享解析
+    };
+    cloud115?: {
+      enabled: boolean;                  // 是否启用115网盘分享解析
+      cookie: string;                    // 115网盘Cookie
+    };
   };
   AIRecommendConfig?: {
     enabled: boolean;                    // 是否启用AI推荐功能
