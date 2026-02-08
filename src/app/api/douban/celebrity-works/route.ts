@@ -37,13 +37,10 @@ function parseDoubanSearchHtml(html: string): Array<{
     source: string;
   }> = [];
 
-  // 匹配每个 result div
-  const resultRegex = /<div class="result"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g;
-  let resultMatch;
+  // 使用 split 方式分割每个 result div（比正则更可靠）
+  const blocks = html.split('<div class="result">').slice(1);
 
-  while ((resultMatch = resultRegex.exec(html)) !== null) {
-    const block = resultMatch[0];
-
+  for (const block of blocks) {
     // 提取 ID - 从 URL 中获取
     const idMatch = block.match(/movie\.douban\.com%2Fsubject%2F(\d+)/);
     if (!idMatch) continue;
