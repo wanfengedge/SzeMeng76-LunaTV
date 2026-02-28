@@ -42,6 +42,8 @@ function DoubanPageClient() {
   const isFirstMountRef = useRef(true);
   // 🛡️ 请求生命周期管理：防止同一 cacheKey 的并发请求
   const pendingCacheKeyRef = useRef<string | null>(null);
+  // 🔒 同步锁：防止 endReached 连续触发时 isLoadingMore state 未更新导致跳页
+  const isLoadingMoreRef = useRef(false);
   // 返回顶部按钮显示状态
   const [showBackToTop, setShowBackToTop] = useState(false);
   // VirtualDoubanGrid ref for scroll control
@@ -728,6 +730,7 @@ function DoubanPageClient() {
         } catch (err) {
           console.error(err);
         } finally {
+          isLoadingMoreRef.current = false;
           setIsLoadingMore(false);
         }
       };
@@ -885,10 +888,11 @@ function DoubanPageClient() {
 
   // 处理虚拟化组件的加载更多请求
   const handleVirtualLoadMore = useCallback(() => {
-    if (hasMore && !isLoadingMore) {
+    if (hasMore && !isLoadingMoreRef.current) {
+      isLoadingMoreRef.current = true;
       setCurrentPage(prev => prev + 1);
     }
-  }, [hasMore, isLoadingMore]);
+  }, [hasMore]);
 
   const getPageTitle = () => {
     // 根据 type 生成标题
