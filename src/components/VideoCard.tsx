@@ -105,7 +105,9 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
   const deletePlayRecordMutation = useDeletePlayRecordMutation();
 
   const [favorited, setFavorited] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() =>
+    loadedImageUrls.has(processImageUrl(poster))
+  );
   const [imageLoaded, setImageLoaded] = useState(() =>
     loadedImageUrls.has(processImageUrl(poster))
   ); // 图片加载状态
