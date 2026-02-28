@@ -44,6 +44,8 @@ function DoubanPageClient() {
   const pendingCacheKeyRef = useRef<string | null>(null);
   // 🔒 同步锁：防止 endReached 连续触发时 isLoadingMore state 未更新导致跳页
   const isLoadingMoreRef = useRef(false);
+  // 🕒 冷却锁：防止 load-more 完成后立刻被再次触发（尤其缓存命中时几乎瞬间完成）
+  const loadMoreCooldownRef = useRef(false);
   // 返回顶部按钮显示状态
   const [showBackToTop, setShowBackToTop] = useState(false);
   // VirtualDoubanGrid ref for scroll control
@@ -732,6 +734,10 @@ function DoubanPageClient() {
         } finally {
           isLoadingMoreRef.current = false;
           setIsLoadingMore(false);
+          // Cooldown: prevent endReached from re-firing immediately after data
+          // lands (cache hits resolve in <1ms, causing rapid skeleton cycling)
+          loadMoreCooldownRef.current = true;
+          setTimeout(() => { loadMoreCooldownRef.current = false; }, 800);
         }
       };
 
@@ -888,7 +894,7 @@ function DoubanPageClient() {
 
   // 处理虚拟化组件的加载更多请求
   const handleVirtualLoadMore = useCallback(() => {
-    if (hasMore && !isLoadingMoreRef.current) {
+    if (hasMore && !isLoadingMoreRef.current && !loadMoreCooldownRef.current) {
       isLoadingMoreRef.current = true;
       setCurrentPage(prev => prev + 1);
     }
