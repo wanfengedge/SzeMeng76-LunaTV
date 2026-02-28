@@ -66,9 +66,10 @@ export type VideoCardHandle = {
   setDoubanId: (id?: number) => void;
 };
 
+import { loadedImageUrls } from '@/lib/imageCache';
+
 // Module-level cache: tracks poster URLs already loaded by the browser.
 // Survives VirtuosoGrid remount cycles so re-entering items skip the skeleton.
-const loadedImageUrls = new Set<string>();
 
 const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard(
   {
