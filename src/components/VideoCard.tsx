@@ -843,7 +843,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
             loading={priority ? undefined : 'lazy'}
             priority={priority}
             quality={75}
-            onLoadingComplete={() => {
+            onLoad={() => {
               loadedImageUrls.add(processImageUrl(actualPoster));
               setIsLoading(true);
               setImageLoaded(true);
