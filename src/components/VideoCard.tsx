@@ -845,8 +845,10 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(function VideoCard
             quality={75}
             onLoad={() => {
               loadedImageUrls.add(processImageUrl(actualPoster));
-              setIsLoading(true);
-              setImageLoaded(true);
+              if (!imageLoaded) {
+                setIsLoading(true);
+                setImageLoaded(true);
+              }
             }}
             onError={(e) => {
               // 图片加载失败时的处理
