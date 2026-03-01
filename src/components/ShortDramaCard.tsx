@@ -23,6 +23,7 @@ import {
   getCache,
   setCache,
 } from '@/lib/shortdrama-cache';
+import { loadedImageUrls } from '@/lib/imageCache';
 import { ShortDramaItem } from '@/lib/types';
 
 import AIRecommendModal from '@/components/AIRecommendModal';
@@ -33,6 +34,7 @@ interface ShortDramaCardProps {
   showDescription?: boolean;
   className?: string;
   aiEnabled?: boolean; // AI功能是否启用
+  priority?: boolean; // 图片加载优先级（用于首屏可见图片）
 }
 
 function ShortDramaCard({
@@ -40,6 +42,7 @@ function ShortDramaCard({
   showDescription = false,
   className = '',
   aiEnabled: aiEnabledProp,
+  priority = false,
 }: ShortDramaCardProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -47,7 +50,9 @@ function ShortDramaCard({
 
   const [realEpisodeCount, setRealEpisodeCount] = useState<number>(drama.episode_count);
   const [showEpisodeCount, setShowEpisodeCount] = useState(drama.episode_count > 1); // 如果初始集数>1就显示
-  const [imageLoaded, setImageLoaded] = useState(false); // 图片加载状态
+  const [imageLoaded, setImageLoaded] = useState(() =>
+    loadedImageUrls.has(drama.cover)
+  ); // 图片加载状态，初始化时检查缓存
   const [favorited, setFavorited] = useState(false); // 收藏状态
   const [showMobileActions, setShowMobileActions] = useState(false); // 移动端操作面板
   const [showAIChat, setShowAIChat] = useState(false); // AI问片弹窗
@@ -338,8 +343,11 @@ function ShortDramaCard({
             className={`h-full w-full object-cover transition-all duration-700 ease-out ${
               imageLoaded ? 'opacity-100 blur-0 scale-100 group-hover:scale-105' : 'opacity-0 blur-md scale-105'
             }`}
-            loading="lazy"
-            onLoad={() => setImageLoaded(true)}
+            loading={priority ? undefined : 'lazy'}
+            onLoad={() => {
+              loadedImageUrls.add(drama.cover);
+              setImageLoaded(true);
+            }}
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/placeholder-cover.jpg';
               setImageLoaded(true);
